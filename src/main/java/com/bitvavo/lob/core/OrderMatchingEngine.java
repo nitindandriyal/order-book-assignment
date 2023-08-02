@@ -25,21 +25,21 @@ public class OrderMatchingEngine {
         if (orderEvent.orderAction() == OrderAction.BUY) {
             if (askTopOfBook == -1
                     || asks[askTopOfBook].getLimitOrderEvent().limitPrice() > orderEvent.limitPrice()) {
-                addToBidRestingOrders(orderEvent);
+                addToBidRestingOrders(orderEvent, orderEvent.quantity());
             } else {
                 int remainingQuantityToFill = sweepAskRestingOrders(orderEvent);
                 if (remainingQuantityToFill > 0) {
-                    addToBidRestingOrders(orderEvent);
+                    addToBidRestingOrders(orderEvent, remainingQuantityToFill);
                 }
             }
         } else {
             if (bidTopOfBook == -1
                     || bids[bidTopOfBook].getLimitOrderEvent().limitPrice() < orderEvent.limitPrice()) {
-                addToAskRestingOrders(orderEvent);
+                addToAskRestingOrders(orderEvent, orderEvent.quantity());
             } else {
                 int remainingQuantityToFill = sweepBidRestingOrders(orderEvent);
                 if (remainingQuantityToFill > 0) {
-                    addToAskRestingOrders(orderEvent);
+                    addToAskRestingOrders(orderEvent, remainingQuantityToFill);
                 }
             }
         }
@@ -149,30 +149,30 @@ public class OrderMatchingEngine {
         }
     }
 
-    private void addToBidRestingOrders(LimitOrderEvent orderEvent) {
+    private void addToBidRestingOrders(LimitOrderEvent orderEvent, int remainingQuantity) {
         if (null == bids[orderEvent.limitPrice()]) {
-            bids[orderEvent.limitPrice()] = new OrderBookBucket(orderEvent);
+            bids[orderEvent.limitPrice()] = new OrderBookBucket(orderEvent, remainingQuantity);
         } else {
             OrderBookBucket tailOrderBookBucket = bids[orderEvent.limitPrice()]; // all on same price levels
             while (tailOrderBookBucket.getNext() != null) {
                 tailOrderBookBucket = tailOrderBookBucket.getNext();
             }
-            tailOrderBookBucket.setNext(new OrderBookBucket(orderEvent));
+            tailOrderBookBucket.setNext(new OrderBookBucket(orderEvent, remainingQuantity));
         }
         if (bidTopOfBook == -1 || bidTopOfBook < orderEvent.limitPrice()) {
             bidTopOfBook = orderEvent.limitPrice();
         }
     }
 
-    private void addToAskRestingOrders(LimitOrderEvent orderEvent) {
+    private void addToAskRestingOrders(LimitOrderEvent orderEvent, int remainingQuantity) {
         if (null == asks[orderEvent.limitPrice()] || null == asks[orderEvent.limitPrice()].getLimitOrderEvent()) {
-            asks[orderEvent.limitPrice()] = new OrderBookBucket(orderEvent);
+            asks[orderEvent.limitPrice()] = new OrderBookBucket(orderEvent, remainingQuantity);
         } else {
             OrderBookBucket tailOrderBookBucket = asks[orderEvent.limitPrice()]; // all on same price levels
             while (tailOrderBookBucket.getNext() != null) {
                 tailOrderBookBucket = tailOrderBookBucket.getNext();
             }
-            tailOrderBookBucket.setNext(new OrderBookBucket(orderEvent));
+            tailOrderBookBucket.setNext(new OrderBookBucket(orderEvent, remainingQuantity));
         }
         if (askTopOfBook == -1 || askTopOfBook > orderEvent.limitPrice()) {
             askTopOfBook = orderEvent.limitPrice();
